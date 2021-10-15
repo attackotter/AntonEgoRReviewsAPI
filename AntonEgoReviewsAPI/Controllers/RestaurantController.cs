@@ -12,7 +12,6 @@ using System.Web.Http.Cors;
 
 namespace AntonEgoReviewsAPI.Controllers
 {
-    [EnableCors(origins: "*", headers: "*", methods: "*")]
     public class RestaurantController : ApiController
     {
         public HttpResponseMessage Get()

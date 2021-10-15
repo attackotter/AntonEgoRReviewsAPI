@@ -24,11 +24,8 @@ namespace AntonEgoReviewsAPI
                 defaults: new { id = RouteParameter.Optional }
             );
 
-            var cors = new EnableCorsAttribute("*", "*", "*");
-            config.EnableCors(cors);
 
-            var constraints = new { httpMethod = new HttpMethodConstraint(HttpMethod.Options) };
-            config.Routes.IgnoreRoute("OPTIONS", "*pathInfo", constraints);
+
         }
     }
 }
