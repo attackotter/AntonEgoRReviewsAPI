@@ -1,9 +1,12 @@
-﻿using System;
+﻿using AntonEgoReviewsAPI.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Web;
+using System.Web.Helpers;
 using System.Web.Http;
-using System.Web.Mvc;
+
 
 namespace AntonEgoReviewsAPI.Controllers
 {
@@ -11,11 +14,30 @@ namespace AntonEgoReviewsAPI.Controllers
     {
         [Route("api/home/addrestraunt")]
         [HttpPost]
-        public ActionResult Index()
+        public async Task<Restaurant> SaveNewRestraunt([FromBody] Restaurant selectedRestraunt)
         {
-            ViewBag.Title = "Home Page";
+            return new Restaurant();
+        }
 
-            return View();
+        [Route("api/home/addrestraunt")]
+        [HttpPost]
+        public async Task<Restaurant> DeleteRestraunt([FromBody] Restaurant selectedRestraunt)
+        {
+            return new Restaurant();
+        }
+
+        [Route("api/home/addrestraunt")]
+        [HttpPost]
+        public async Task<Restaurant> EditRestraunt([FromBody] Restaurant selectedRestraunt)
+        {
+            return new Restaurant();
+        }
+
+        [Route("api/home/addrestraunt")]
+        [HttpPost]
+        public async Task<Restaurant> GetAverageRestraunt([FromBody] Restaurant selectedRestraunt)
+        {
+            return new Restaurant();
         }
     }
 }
