@@ -16,41 +16,56 @@ namespace AntonEgoReviewsAPI.Controllers
     {
         public HttpResponseMessage Get()
         {
-            string query = @"
-            select    res.RestaurantId, res.RestaurantName, res.StreetAddress, res.City, res.State, res.Zip, res.Description, res.HoursOfOperation, Average = (SELECT AVG(CAST(Rating AS DECIMAL(5,2))) AS SQLAVG FROM RestaurantReview as rev WHERE rev.RestaurantId = res.RestaurantId)
-            from dbo.Restaurant as res
-
-            ";
-            DataTable table = new DataTable();
-            using(var con= new SqlConnection(ConfigurationManager.ConnectionStrings["Restaurant"].ConnectionString)) 
-            using (var cmd = new SqlCommand(query,con))
-            using (var da = new SqlDataAdapter(cmd))
+            using (SqlConnection conn = new SqlConnection(ConfigurationManager.ConnectionStrings["Restaurant"].ConnectionString))
             {
-                cmd.CommandType = CommandType.Text;
-                da.Fill(table);
+                conn.Open();
+                DataTable table = new DataTable();
+                SqlCommand cmd = new SqlCommand("GetRestruants", conn);
+                cmd.CommandType = CommandType.StoredProcedure;
+                using (SqlDataReader rdr = cmd.ExecuteReader())
+                {
+                    cmd.CommandType = CommandType.Text;
+                    table.Load(rdr);
+                }
+                conn.Close();
+                return Request.CreateResponse(HttpStatusCode.OK, table);
             }
-            return Request.CreateResponse(HttpStatusCode.OK, table);
         }
 
-        public HttpResponseMessage Post(Restaurant rest)
+        [Route("api/Restaurant/AddRestaurant")]
+        [HttpPost]
+        public HttpResponseMessage AddRestaurant(Restaurant rest)
         {
             try
             {
-                string query = @"
-                insert into  dbo.Restaurant
-                values ('" + rest.RestaurantName + "','" + rest.StreetAddress + "','" + rest.City + "','" + rest.State + "','" + rest.Zip + "','" + rest.Description + "','" + rest.HoursOfOperation + @"')
-                ";
-
-                DataTable table = new DataTable();
-                using (var con = new SqlConnection(ConfigurationManager.ConnectionStrings["Restaurant"].ConnectionString))
-                using (var cmd = new SqlCommand(query, con))
-                using (var da = new SqlDataAdapter(cmd))
+                using (SqlConnection conn = new SqlConnection(ConfigurationManager.ConnectionStrings["Restaurant"].ConnectionString))
                 {
-                    cmd.CommandType = CommandType.Text;
-                    da.Fill(table);
+                    conn.Open();
+                    DataTable table = new DataTable();
+                    SqlCommand cmd = new SqlCommand("AddRestruant", conn);
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add(new SqlParameter("@RestaurantName", rest.RestaurantName));
+                    cmd.Parameters.Add(new SqlParameter("@StreetAddress", rest.StreetAddress));
+                    cmd.Parameters.Add(new SqlParameter("@City", rest.City));
+                    cmd.Parameters.Add(new SqlParameter("@State", rest.State));
+                    cmd.Parameters.Add(new SqlParameter("@Zip", rest.Zip));
+                    cmd.Parameters.Add(new SqlParameter("@Description", rest.Description));
+                    cmd.Parameters.Add(new SqlParameter("@HoursOfOperation", rest.HoursOfOperation));
+                    cmd.Parameters.Add("@id", SqlDbType.Int).Direction = ParameterDirection.Output;
+
+
+                    cmd.ExecuteNonQuery();
+                    string id = cmd.Parameters["@id"].Value.ToString();
+
+                    //add returend new id to create user review 
+                    rest.RestaurantId = Convert.ToInt32(id);
+                    conn.Close();
+
+                    // add the restaurant review
+                    AddRating(rest);
+                    return Request.CreateResponse(HttpStatusCode.OK, "Added new Record");
                 }
 
-                return Request.CreateResponse(HttpStatusCode.OK, "Success Added Record");
             }
             catch(Exception ex)
             {
@@ -63,18 +78,21 @@ namespace AntonEgoReviewsAPI.Controllers
         {
             try
             {
-                string query = @"
-                Update  dbo.Restaurant
-                set  RestaurantName='" + rest.RestaurantName + @"',StreetAddress='" + rest.StreetAddress + @"', City='" + rest.City + @"',State='" + rest.State + @"',Zip='" + rest.Zip + @"',Description='" + rest.Description + @"', HoursOfOperation='" + rest.HoursOfOperation + @"'
-                where RestaurantId= " + rest.RestaurantId +@"";
-
-                DataTable table = new DataTable();
-                using (var con = new SqlConnection(ConfigurationManager.ConnectionStrings["Restaurant"].ConnectionString))
-                using (var cmd = new SqlCommand(query, con))
-                using (var da = new SqlDataAdapter(cmd))
+                using (SqlConnection conn = new SqlConnection(ConfigurationManager.ConnectionStrings["Restaurant"].ConnectionString))
                 {
-                    cmd.CommandType = CommandType.Text;
-                    da.Fill(table);
+                    conn.Open();
+                    SqlCommand cmd = new SqlCommand("UpdateRestruant", conn);
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add(new SqlParameter("@RestaurantId", rest.RestaurantId));
+                    cmd.Parameters.Add(new SqlParameter("@RestaurantName", rest.RestaurantName));
+                    cmd.Parameters.Add(new SqlParameter("@StreetAddress", rest.StreetAddress));
+                    cmd.Parameters.Add(new SqlParameter("@City", rest.City));
+                    cmd.Parameters.Add(new SqlParameter("@State", rest.State));
+                    cmd.Parameters.Add(new SqlParameter("@Zip", rest.Zip));
+                    cmd.Parameters.Add(new SqlParameter("@Description", rest.Description));
+                    cmd.Parameters.Add(new SqlParameter("@HoursOfOperation", rest.HoursOfOperation));
+                    cmd.ExecuteNonQuery();
+                    conn.Close();
                 }
                 return Request.CreateResponse(HttpStatusCode.OK, "Success, Updated Record");
             }
@@ -89,17 +107,14 @@ namespace AntonEgoReviewsAPI.Controllers
         {
             try
             {
-                string query = @"
-                Delete From  dbo.Restaurant
-                where RestaurantId= " + id + @"";
-
-                DataTable table = new DataTable();
-                using (var con = new SqlConnection(ConfigurationManager.ConnectionStrings["Restaurant"].ConnectionString))
-                using (var cmd = new SqlCommand(query, con))
-                using (var da = new SqlDataAdapter(cmd))
+                using (SqlConnection conn = new SqlConnection(ConfigurationManager.ConnectionStrings["Restaurant"].ConnectionString))
                 {
-                    cmd.CommandType = CommandType.Text;
-                    da.Fill(table);
+                    conn.Open();
+                    SqlCommand cmd = new SqlCommand("DeleteRestaurantAndReviews", conn);
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add(new SqlParameter("@RestaurantId", id));
+                    cmd.ExecuteNonQuery();
+                    conn.Close();
                 }
                 return "Deleted Record";
             }
@@ -108,6 +123,36 @@ namespace AntonEgoReviewsAPI.Controllers
                 return "Failed to Deleted Record" + ex.Message;
             }
 
+        }
+
+
+
+        
+        [Route("api/Restaurant/AddReview")]
+        [HttpPost]
+        public HttpResponseMessage AddRating(Restaurant rest)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(ConfigurationManager.ConnectionStrings["Restaurant"].ConnectionString))
+                {
+                    conn.Open();
+                    DataTable table = new DataTable();
+                    SqlCommand cmd = new SqlCommand("AddReview", conn);
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add(new SqlParameter("@RestaurantId", rest.RestaurantId));
+                    cmd.Parameters.Add(new SqlParameter("@Review", rest.Rating));
+                    cmd.ExecuteNonQuery();
+                    conn.Close();
+
+                }
+
+                    return Request.CreateResponse(HttpStatusCode.OK, "Success Added Review");
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateResponse(HttpStatusCode.BadRequest, "Fail To Add Review" + ex.Message);
+            }
         }
     }
 }

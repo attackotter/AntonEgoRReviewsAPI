@@ -15,6 +15,7 @@ namespace AntonEgoReviewsAPI.Models
         public string Zip { get; set; }
         public string Description { get; set; }
         public string HoursOfOperation { get; set; }
+        public string Rating { get; set; }
         public string AverageRating { get; set; }
 
     }
